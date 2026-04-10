@@ -1,54 +1,50 @@
 import os
-import requests
+import asyncio
 from flask import Flask
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-# Flask setup (Render အတွက် လိုအပ်သည်)
+# Flask setup (Render keep-alive အတွက်)
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot is running!"
+    return "Bot is alive!"
 
 # Telegram Bot Token
 TOKEN = "8382398265:AAF92uZPHGmB6APcl3G3yhh0oFWw39nBm8A"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("မင်္ဂလာပါ။ 1xBet ပြင်သစ် Betslip Code ကို ပေးပို့ပါ။ မြန်မာ Code အဖြစ် ပြောင်းလဲပေးပါမည်။")
+    await update.message.reply_text("မင်္ဂလာပါ။ 1xBet ပြင်သစ် Betslip Code ပို့ပေးပါ။")
 
-async def convert_code(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    france_code = update.message.text.upper().strip()
-    await update.message.reply_text(f"ပြင်သစ် Code '{france_code}' ကို စစ်ဆေးနေပါသည်...")
+async def convert(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_code = update.message.text.upper().strip()
+    await update.message.reply_text(f"ပြင်သစ် Code: {user_code} ကို လက်ခံရရှိပါပြီ။ မြန်မာ Code ပြောင်းလဲရန် ကြိုးစားနေဆဲ ဖြစ်ပါသည်။")
 
-    # --- ဒီနေရာမှာ 1xBet API Logic ထည့်ရပါမယ် ---
-    # မှတ်ချက် - 1xBet က ပွဲစဉ်ဒေတာယူဖို့ Proxy သို့မဟုတ် Session လိုအပ်ပါတယ်။
-    # လောလောဆယ်တွင် ပုံစံတူ Response ကို ပြသပေးပါမည်။
-    
-    try:
-        # 1xBet (France) ရဲ့ API ကို လှမ်းခေါ်တဲ့ပုံစံ (ဥပမာသာဖြစ်သည်)
-        # တကယ့်စနစ်မှာ 1xbet.com/test-api/v1/get-betslip သို့မဟုတ် scraping သုံးရမည်
-        
-        result_message = (
-            f"✅ ပြောင်းလဲပြီးပါပြီ!\n\n"
-            f"🇫🇷 France Code: {france_code}\n"
-            f"🇲🇲 Myanmar Code: (MM-REPLACEMENT)\n\n"
-            f"⚠️ မှတ်ချက်: 1xBet Server များ မတူညီသဖြင့် ပွဲစဉ်အချို့ ကွဲလွဲနိုင်ပါသည်။"
-        )
-        await update.message.reply_text(result_message)
-        
-    except Exception as e:
-        await update.message.reply_text("Error: စနစ်အတွင်း အမှားအယွင်းတစ်ခု ရှိနေပါသည်။")
+async def main():
+    # Application တည်ဆောက်ခြင်း
+    application = Application.builder().token(TOKEN).build()
 
-if __name__ == "__main__":
-    # Bot Application ဆောက်ခြင်း
-    application = ApplicationBuilder().token(TOKEN).build()
-    
+    # Handler များ ထည့်ခြင်း
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), convert_code))
-    
-    # Render အတွက် Port ပေးခြင်း
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, convert))
+
+    # Bot ကို စတင်ခြင်း
+    async with application:
+        await application.initialize()
+        await application.start()
+        await application.updater.start_polling()
+        
+        # Render အတွက် Flask ကိုပါ တစ်ခါတည်း run ရန် (Thread သုံးရမည် သို့မဟုတ် ရိုးရိုး run မည်)
+        # လောလောဆယ် bot သီးသန့် run ဖို့ပဲ အာရုံစိုက်ပါမယ်
+        while True:
+            await asyncio.sleep(1)
+
+if __name__ == '__main__':
+    # Render က PORT တောင်းတာကို ဖြေရှင်းရန်
+    import threading
     port = int(os.environ.get("PORT", 5000))
+    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=port, use_reloader=False)).start()
     
-    print("Bot is starting...")
-    application.run_polling()
+    # Bot ကို Run ရန်
+    asyncio.run(main())
