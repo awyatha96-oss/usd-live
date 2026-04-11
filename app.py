@@ -69,6 +69,6 @@ if __name__ == '__main__':
     t = threading.Thread(target=run_bot, daemon=True)
     t.start()
     
-    # ၂။ Flask ကို Main မှာ Run မယ်
+    
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
