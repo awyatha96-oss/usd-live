@@ -1,6 +1,5 @@
 import os
 import requests
-import asyncio
 from flask import Flask, request
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -8,7 +7,6 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 app = Flask(__name__)
 
 TOKEN = "8382398265:AAGdhv10bZvsHB-MZxIptP872P7rFjyfaiU"
-# ပုံ (၁၃) ထဲက URL ကို အတိအကျ သုံးထားပါတယ်
 RENDER_URL = "https://usd-live.onrender.com"
 
 # Application Setup
@@ -28,15 +26,18 @@ async def convert_logic(update: Update, context: ContextTypes.DEFAULT_TYPE):
             events = data['Value'].get('Events', [])
             reply = f"✅ Code: {user_code}\n\n"
             for event in events:
-                reply += f"⚽ {event.get('GameName')}\n🎯 {event.get('MarketName')}\n\n"
+                game = event.get('GameName', 'Unknown Game')
+                market = event.get('MarketName', 'Unknown Bet')
+                reply += f"⚽ {game}\n🎯 {market}\n\n"
             await update.message.reply_text(reply)
         else:
             await update.message.reply_text("❌ Code မတွေ့ပါ။")
     except:
         await update.message.reply_text("⚠️ Connection Error")
 
+# Webhook Endpoint (Error တက်နေတဲ့ argument ပြဿနာကို ဒီမှာ ရှင်းထားပါတယ်)
 @app.route(f'/{TOKEN}', methods=['POST'])
-async def webhook(token):
+async def webhook_handler():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), application.bot)
         await application.process_update(update)
@@ -46,18 +47,14 @@ async def webhook(token):
 def index():
     return "Bot is Alive"
 
-# Webhook ကို Force ပြန်လုပ်ဖို့ function
-def setup_webhook():
-    webhook_url = f"{RENDER_URL}/{TOKEN}"
-    requests.get(f"https://api.telegram.org/bot{TOKEN}/setWebhook?url={webhook_url}")
-
 if __name__ == '__main__':
+    # Handler များထည့်ခြင်း
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, convert_logic))
     
-    # Bot စတင်ချိန်မှာ Webhook ကို တစ်ခါတည်း ချိတ်မယ်
-    setup_webhook()
+    # Webhook ကို Telegram မှာ Register လုပ်ခြင်း
+    webhook_url = f"{RENDER_URL}/{TOKEN}"
+    requests.get(f"https://api.telegram.org/bot{TOKEN}/setWebhook?url={webhook_url}")
     
     port = int(os.environ.get("PORT", 5000))
-    # Threading သုံးပြီး flask ကို run ပါမယ်
     app.run(host='0.0.0.0', port=port)
