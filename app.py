@@ -5,18 +5,18 @@ from flask import Flask
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-# ၁။ Render အတွက် Web Server Setup
+# ၁။ Render Live ဖြစ်စေရန် Web Server တည်ဆောက်ခြင်း
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot is Alive", 200
+    return "New Bot is Running Successfully", 200
 
-# ၂။ Bot Logic
-TOKEN = "8382398265:AAGdhv10bZvsHB-MZxIptP872P7rFjyfaiU"
+# ၂။ သင်ပေးထားသော Token အသစ်
+TOKEN = "8578954674:AAHBVc4nLld7lQFAF6jhTj4XC8JjICdpy7o"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🇲🇲 1xBet France Code Converter\n\nပြင်သစ် Code ပို့ပေးပါ။")
+    await update.message.reply_text("🇲🇲 1xBet France Code Converter (New Bot)\n\nပြင်သစ် Code ပို့ပေးပါ။ ပွဲစဉ်အသေးစိတ်ကို ပြပေးပါမည်။")
 
 async def convert_logic(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_code = update.message.text.upper().strip()
@@ -29,31 +29,36 @@ async def convert_logic(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if data.get('success') and 'Value' in data:
             events = data['Value'].get('Events', [])
-            reply = f"✅ Code: {user_code}\n\n"
-            for event in events:
+            if not events:
+                await update.message.reply_text("❌ ဤ Code ထဲတွင် ပွဲစဉ်များ မရှိတော့ပါ။")
+                return
+                
+            reply = f"✅ ပွဲစဉ်စာရင်း (Code: {user_code})\n"
+            reply += "──────────────────\n"
+            for i, event in enumerate(events, 1):
                 game = event.get('GameName', 'Unknown Game')
                 market = event.get('MarketName', 'Unknown Bet')
-                reply += f"⚽ {game}\n🎯 {market}\n\n"
+                reply += f"{i}. ⚽ {game}\n🎯 {market}\n\n"
+            reply += "──────────────────"
             await update.message.reply_text(reply)
         else:
-            await update.message.reply_text("❌ Code မတွေ့ပါ။")
+            await update.message.reply_text("❌ Code မတွေ့ပါ။ (ပွဲပြီးသွားခြင်း သို့မဟုတ် မှားယွင်းခြင်း ဖြစ်နိုင်သည်)")
     except:
-        await update.message.reply_text("⚠️ Connection Error")
+        await update.message.reply_text("⚠️ ချိတ်ဆက်မှု အဆင်မပြေပါ။ ခဏနေမှ ပြန်စမ်းပါ။")
 
-# ၃။ Bot ကို Background မှာ Run မည့် Function
+# ၃။ Bot ကို Background တွင် Polling စနစ်ဖြင့် မောင်းနှင်ခြင်း
 def run_bot():
-    # အသစ်ဆုံး Version 20 ပုံစံ
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, convert_logic))
-    print("Bot is starting...")
+    print("Bot is starting polling...")
     application.run_polling(drop_pending_updates=True)
 
 if __name__ == '__main__':
-    # Bot ကို Thread နှင့် ခွဲမောင်းမည်
-    bot_thread = threading.Thread(target=run_bot, daemon=True)
-    bot_thread.start()
+    # Bot ကို Thread တစ်ခုဖြင့် ခွဲမောင်းမည်
+    t = threading.Thread(target=run_bot, daemon=True)
+    t.start()
     
-    # Flask ကို Main Thread တွင် Run မည် (ဒါမှ Render က Live ပေးမှာပါ)
+    # Render အတွက် Main Thread တွင် Flask ကို run မည်
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
