@@ -8,23 +8,25 @@ HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>France Code Converter</title>
+    <title>France Slip Converter</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: sans-serif; background: #121212; color: white; display: flex; justify-content: center; padding: 20px; }
-        .container { width: 100%; max-width: 450px; background: #1e1e1e; padding: 25px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.5); text-align: center; }
-        input { width: 100%; padding: 15px; margin: 15px 0; border: 1px solid #333; border-radius: 8px; background: #2d2d2d; color: white; font-size: 18px; text-transform: uppercase; }
-        button { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .match-card { text-align: left; background: #2d2d2d; border-left: 5px solid #ffcc00; padding: 15px; margin-top: 15px; border-radius: 8px; }
-        .error { color: #ff4444; background: #3d1a1a; padding: 12px; border-radius: 8px; margin-top: 20px; }
+        body { font-family: sans-serif; background: #0b0e11; color: #eaecef; display: flex; justify-content: center; padding: 20px; }
+        .container { width: 100%; max-width: 450px; background: #1e2329; padding: 25px; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); text-align: center; }
+        h2 { color: #f0b90b; margin-bottom: 20px; }
+        input { width: 100%; padding: 15px; margin-bottom: 15px; border: 1px solid #474d57; border-radius: 8px; background: #2b3139; color: white; font-size: 18px; text-transform: uppercase; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #f0b90b; color: black; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
+        button:hover { background: #dca009; }
+        .match-card { text-align: left; background: #2b3139; border-left: 4px solid #f0b90b; padding: 15px; margin-top: 15px; border-radius: 8px; }
+        .error { color: #f6465d; background: rgba(246, 70, 93, 0.1); padding: 12px; border-radius: 8px; margin-top: 20px; font-weight: bold; border: 1px solid #f6465d; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>🇫🇷 France Code Special</h2>
+        <h2>🇫🇷 France Code Converter</h2>
         <form method="POST">
-            <input type="text" name="code" placeholder="ENTER FRANCE CODE" value="{{ code }}" required>
-            <button type="submit">Check France Data</button>
+            <input type="text" name="code" placeholder="ENTER CODE (E.G. L82C1)" value="{{ code }}" required>
+            <button type="submit">CHECK SLIP</button>
         </form>
 
         {% if error %}<div class="error">{{ error }}</div>{% endif %}
@@ -32,9 +34,9 @@ HTML_TEMPLATE = """
             <div style="margin-top:20px;">
                 {% for event in result %}
                     <div class="match-card">
-                        <div style="font-weight:bold; color: #ffcc00;">⚽ {{ event.GameName }}</div>
-                        <div style="font-size:13px; color:#aaa;">{{ event.League }}</div>
-                        <div style="color: #00ff00; font-weight:bold; margin-top:5px;">🎯 {{ event.MarketName }}</div>
+                        <div style="font-weight:bold; color:#f0b90b; margin-bottom:5px;">⚽ {{ event.GameName }}</div>
+                        <div style="font-size:13px; color:#848e9c; margin-bottom:8px;">{{ event.League }}</div>
+                        <div style="color: #02c076; font-weight:bold;">🎯 Bet: {{ event.MarketName }}</div>
                     </div>
                 {% endfor %}
             </div>
@@ -44,32 +46,39 @@ HTML_TEMPLATE = """
 </html>
 """
 
-def get_france_data(code):
-    # France Code တွေအတွက် သီးသန့် API Gateway (Country 201 = France)
+def fetch_data(code):
+    # အဓိက France Gateway ကို ဦးစားပေးခေါ်မယ်
     url = f"https://1xbet.com/service-api/betslip/get/{code}?lng=en&country=201&partner=151"
     
+    # 1xBet က ပိတ်ရခက်အောင် Mobile Safari ပုံစံသွင်းမယ်
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': 'https://1xbet.fr/',
-        'Accept': 'application/json'
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+        'Accept': 'application/json',
+        'Referer': 'https://m.1xbet.com/'
     }
 
     try:
-        r = requests.get(url, headers=headers, timeout=15)
-        data = r.json()
-        if data.get('success') and 'Value' in data:
-            return data['Value'].get('Events', []), None
+        # Timeout ကို တိုးထားပြီး Connection ကို အကြိမ်ကြိမ်စမ်းမယ်
+        session = requests.Session()
+        r = session.get(url, headers=headers, timeout=20)
+        
+        if r.status_code == 200:
+            data = r.json()
+            if data.get('success') and 'Value' in data:
+                return data['Value'].get('Events', []), None
+            else:
+                return None, "❌ Code Expired (သို့) ရှာမတွေ့ပါ။"
         else:
-            return None, "❌ France Code မတွေ့ပါ။ သက်တမ်းကုန်သွားတာ ဖြစ်နိုင်ပါတယ်။"
+            return None, "⚠️ 1xBet က ပိတ်ထားဆဲပါ။ 1 မိနစ်နေမှ ပြန်စမ်းပါ။"
     except:
-        return None, "⚠️ Connection Error. VPN ခံပြီး ပြန်စမ်းကြည့်ပါ။"
+        return None, "⚠️ Connection Error. VPN (France) ချိတ်ပြီး Refresh လုပ်ကြည့်ပါ။"
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     result, error, code = None, None, ""
     if request.method == 'POST':
         code = request.form.get('code', '').upper().strip()
-        result, error = get_france_data(code)
+        result, error = fetch_data(code)
     return render_template_string(HTML_TEMPLATE, result=result, error=error, code=code)
 
 if __name__ == '__main__':
