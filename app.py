@@ -1,6 +1,7 @@
 import os
 import requests
 import threading
+import asyncio
 from flask import Flask
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -10,12 +11,12 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "OK"
+    return "Bot is Running"
 
 TOKEN = "8382398265:AAF92uZPHGmB6APcl3G3yhh0oFWw39nBm8A"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🇲🇲 1xBet France Code Converter\n\nCode ပို့ပေးပါ။")
+    await update.message.reply_text("🇲🇲 1xBet Converter\n\nပြင်သစ် Code ပို့ပေးပါ။")
 
 async def convert_logic(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_code = update.message.text.upper().strip()
@@ -38,16 +39,18 @@ async def convert_logic(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Server Error")
 
 def run_bot():
-    # Bot ကို start လုပ်တဲ့ နေရာမှာ အမှားနည်းအောင် လုပ်ထားပါတယ်
+    # Version 20 အသစ်ပုံစံ
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, convert_logic))
-    application.run_polling()
+    
+    print("Bot is starting...")
+    application.run_polling(drop_pending_updates=True)
 
 if __name__ == '__main__':
     # Bot ကို Thread နဲ့ ခွဲမောင်းမယ်
     threading.Thread(target=run_bot, daemon=True).start()
     
-    # Flask ကို Main မှာ မောင်းမယ်
+    # Flask ကို Main Thread မှာ မောင်းမယ်
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
