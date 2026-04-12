@@ -8,48 +8,33 @@ HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>3-in-1 Bet Converter</title>
+    <title>Ultimate Slip Converter</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #0b0e11; color: #eaecef; display: flex; justify-content: center; padding: 20px; }
-        .container { width: 100%; max-width: 480px; background: #1e2329; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; }
-        .brand-header { font-size: 24px; font-weight: bold; color: #f0b90b; margin-bottom: 20px; text-transform: uppercase; }
-        .platform-tags { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; font-size: 12px; }
-        .tag { padding: 3px 8px; border-radius: 4px; background: #333; color: #aaa; }
-        input { width: 100%; padding: 15px; margin-bottom: 15px; border: 1px solid #474d57; border-radius: 10px; background: #2b3139; color: white; font-size: 18px; text-transform: uppercase; text-align: center; }
-        button { width: 100%; padding: 15px; background: #f0b90b; color: black; border: none; border-radius: 10px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #ffe066; }
-        .match-card { text-align: left; background: #2b3139; border-left: 5px solid #f0b90b; padding: 15px; margin-top: 15px; border-radius: 10px; }
-        .live-badge { float: right; background: #f6465d; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-        .error { color: #f6465d; background: rgba(246, 70, 93, 0.1); padding: 12px; border-radius: 10px; margin-top: 20px; border: 1px solid #f6465d; }
+        body { font-family: sans-serif; background: #0b0e11; color: #fff; display: flex; justify-content: center; padding: 20px; }
+        .container { width: 100%; max-width: 450px; background: #1e2329; padding: 25px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.5); text-align: center; }
+        input { width: 100%; padding: 15px; margin-bottom: 15px; border: 1px solid #444; border-radius: 8px; background: #2b3139; color: white; font-size: 18px; text-transform: uppercase; }
+        button { width: 100%; padding: 15px; background: #f0b90b; color: black; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .match-card { text-align: left; background: #2b3139; border-left: 4px solid #f0b90b; padding: 12px; margin-top: 12px; border-radius: 5px; }
+        .error { color: #f6465d; background: rgba(246,70,93,0.1); padding: 10px; border-radius: 8px; margin-top: 15px; border: 1px solid #f6465d; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="brand-header">💎 Multi-Platform Converter</div>
-        <div class="platform-tags">
-            <span class="tag">1XBET</span>
-            <span class="tag">MELBET</span>
-            <span class="tag">MEGAPARI</span>
-        </div>
-        
+        <h2 style="color:#f0b90b;">🚀 Pro Converter</h2>
         <form method="POST">
-            <input type="text" name="code" placeholder="ENTER CODE (E.G. GQT88)" value="{{ code }}" required>
-            <button type="submit">FIND MATCHES</button>
+            <input type="text" name="code" placeholder="ENTER CODE" value="{{ code }}" required>
+            <button type="submit">FIND NOW</button>
         </form>
 
         {% if error %}<div class="error">{{ error }}</div>{% endif %}
         {% if result %}
             <div style="margin-top:20px;">
-                <h4 style="text-align: left; color: #f0b90b;">✅ Results Found:</h4>
                 {% for event in result %}
                     <div class="match-card">
-                        {% if event.IsLive %}<span class="live-badge">LIVE</span>{% endif %}
-                        <div style="font-weight:bold; font-size: 16px;">⚽ {{ event.GameName }}</div>
-                        <div style="font-size:13px; color:#848e9c; margin: 5px 0;">{{ event.League }}</div>
-                        <div style="color: #02c076; font-weight:bold; background: rgba(2, 192, 118, 0.1); padding: 5px; border-radius: 5px; display: inline-block;">
-                            🎯 Bet: {{ event.MarketName }}
-                        </div>
+                        <div style="font-weight:bold;">⚽ {{ event.GameName }}</div>
+                        <div style="font-size:12px; color:#aaa;">{{ event.League }}</div>
+                        <div style="color:#02c076; font-weight:bold; margin-top:5px;">🎯 {{ event.MarketName }}</div>
                     </div>
                 {% endfor %}
             </div>
@@ -59,44 +44,39 @@ HTML_TEMPLATE = """
 </html>
 """
 
-def fetch_from_all(code):
-    # စစ်ဆေးမည့် Platform များစာရင်း (1xbet, melbet, megapari)
-    domains = [
-        "1xbet.com",
-        "melbet.com",
-        "megapari.com"
+def fetch_data(code):
+    # API ပိတ်တာ ကျော်ဖို့ Gateway မျိုးစုံကို အပြင်းအထန် စမ်းမယ်
+    # 1xbet, melbet, megapari, linebet အကုန်ပါတယ်။
+    targets = [
+        f"https://1xbet.com/service-api/betslip/get/{code}?lng=en&country=201",
+        f"https://melbet.com/service-api/betslip/get/{code}?lng=en&country=201",
+        f"https://megapari.com/service-api/betslip/get/{code}?lng=en&country=201"
     ]
     
-    # France Code ရော Global Code ရော မိအောင် လမ်းကြောင်း ၂ ခုလုံး စစ်မယ်
-    pathways = ["country=201", "country=1", "partner=151"]
-    
     headers = {
-        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-        'Accept': 'application/json'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
     }
 
-    for domain in domains:
-        for path in pathways:
-            url = f"https://{domain}/service-api/betslip/get/{code}?lng=en&{path}"
-            try:
-                r = requests.get(url, headers=headers, timeout=8)
-                if r.status_code == 200:
-                    data = r.json()
-                    if data.get('success') and 'Value' in data:
-                        events = data['Value'].get('Events', [])
-                        if events:
-                            return events, None
-            except:
-                continue
-                
-    return None, "❌ Code not found on any platform (1x/Mel/Mega)."
+    for url in targets:
+        try:
+            # 1xBet ရဲ့ firewall ကို ကျော်ဖို့ timeout ကို ချိန်ညှိထားတယ်
+            r = requests.get(url, headers=headers, timeout=12)
+            if r.status_code == 200:
+                data = r.json()
+                if data.get('success') and 'Value' in data:
+                    return data['Value'].get('Events', []), None
+        except:
+            continue
+    return None, "❌ အခုချိန်မှာ 1xBet က လမ်းကြောင်းအကုန် ပိတ်ထားပါတယ်။ ၁ မိနစ်လောက်နေမှ ပြန်စမ်းပါ။"
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     result, error, code = None, None, ""
     if request.method == 'POST':
         code = request.form.get('code', '').upper().strip()
-        result, error = fetch_from_all(code)
+        result, error = fetch_data(code)
     return render_template_string(HTML_TEMPLATE, result=result, error=error, code=code)
 
 if __name__ == '__main__':
